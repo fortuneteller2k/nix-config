@@ -37,7 +37,9 @@ with theme;
   import XMonad.Layout.Renamed
   import XMonad.Layout.ResizableThreeColumns
   import XMonad.Layout.ResizableTile
+  import XMonad.Layout.Simplest
   import XMonad.Layout.Spacing
+  import XMonad.Layout.Tabbed
 
   import XMonad.Prompt
   import XMonad.Prompt.FuzzyMatch
@@ -59,8 +61,8 @@ with theme;
   modkey = mod1Mask
   term = "${alacritty}/bin/alacritty"
   ws = ["A","B","C","D","E","F","G","H","I","J"]
-  fontName = "Iosevka FT"
-  fontFamily = "xft:" ++ fontName ++ ":size=9.7:antialias=true:hinting=true"
+  fontNameGTK = "Iosevka FT"
+  fontFamily = "xft:" ++ fontNameGTK ++ ":size=9.7:antialias=true:hinting=true"
 
   keybindings =
     [ ("M-<Return>",                 spawnHere term)
@@ -86,8 +88,7 @@ with theme;
     , ("M-<Print>",                  safeSpawn "/etc/nixos/scripts/screenshot" ["area"])
     , ("M-S-s",                      safeSpawn "/etc/nixos/scripts/screenshot" ["full"])
     , ("M-S-q",                      io (exitWith ExitSuccess))
-    , ("M-C-c",                      killAll)
-    , ("M-S-h",                      safeSpawn "${gxmessage}/bin/gxmessage" ["-fn", fontName, help])
+    , ("M-S-h",                      safeSpawn "${gxmessage}/bin/gxmessage" ["-fn", fontNameGTK, help])
     , ("M-S-<Delete>",               safeSpawnProg "slock")
     , ("M-S-c",                      withFocused $ \w -> safeSpawn "${xorg.xkill}/bin/xkill" ["-id", show w])
     , ("M-S-r",                      unsafeSpawn (restartcmd ++ "&& sleep 2 &&" ++ restackcmd))
@@ -96,6 +97,7 @@ with theme;
     , ("M-<Left>",                   windows W.focusUp)
     , ("M-<Right>",                  windows W.focusDown)
     , ("M-S-<Tab>",                  sendMessage FirstLayout)
+    , ("M-C-c",                      killAll)
     , ("<XF86AudioMute>",            safeSpawn "/etc/nixos/scripts/volume" ["toggle"])
     , ("<XF86AudioRaiseVolume>",     safeSpawn "/etc/nixos/scripts/volume" ["up"])
     , ("<XF86AudioLowerVolume>",     safeSpawn "/etc/nixos/scripts/volume" ["down"])
@@ -152,16 +154,31 @@ with theme;
     }
 
   layouts = avoidStruts 
-            $ renamed [CutWordsLeft 4]
+            $ renamed [CutWordsLeft 5]
+            $ smartBorders
+            $ addTabs shrinkText tabTheme
             $ spacingRaw False (Border 4 4 4 4) True (Border 4 4 4 4) True
             $ draggingVisualizer
-            $ layoutHints
             $ maximizeWithPadding 0
-            $ smartBorders 
-            $ (tall ||| Mirror tall ||| threecol ||| Grid)
+            $ layoutHints
+            $ (tall ||| Mirror tall ||| threecol ||| tabs ||| Grid)
     where
+      tabs = renamed [Replace "Tabbed"] $ Simplest
       tall = ResizableTall 1 (3/100) (11/20) []
       threecol = ResizableThreeColMid 1 (3/100) (1/2) []
+
+  tabTheme = def
+    { fontName            = fontFamily
+    , activeColor         = "#${colors.primary}"
+    , inactiveColor       = "#${colors.bg}"
+    , urgentColor         = "#${colors.c5}"
+    , activeTextColor     = "#${colors.bg}"
+    , inactiveTextColor   = "#${colors.fg}"
+    , urgentTextColor     = "#${colors.bg}"
+    , activeBorderWidth   = 0
+    , inactiveBorderWidth = 0
+    , urgentBorderWidth   = 0
+    }
 
   windowRules =
     placeHook (smart (0.5, 0.5))
@@ -227,47 +244,47 @@ with theme;
     , ""
     , "Default keybindings:"
     , ""
-    , "Alt-Enter:             spawn alacritty"
-    , "Alt-b:                 spawn alacritty in a scratchpad"
-    , "Alt-`:                 toggle distraction less mode"
-    , "Alt-d:                 show run prompt"
-    , "Alt-q:                 quit window"
-    , "Alt-w:                 spawn emacs"
-    , "Alt-F2:                spawn qutebrowser"
-    , "Alt-e:                 maximize window"
-    , "Alt-Tab:               cycle through layouts"
-    , "Alt-s:                 swap focused window with master window"
-    , "Alt-minus:             shrink window"
-    , "Alt-=:                 expand window"
-    , "Alt-[:                 shrink window mirrored"
-    , "Alt-]:                 expand window mirrored"
-    , "Alt-t:                 toggle floating of window"
-    , "Alt-,:                 increase number of master windows"
-    , "Alt-.:                 decrease number of master windows"
-    , "Alt-LeftClick:         float window and drag it with cursor"
-    , "Alt-RightClick:        float window and resize it"
-    , "Alt-[0-9]:             for [1-9] go to nth workspace, for 0 go to 10th workspace"
-    , "Alt-Print:             take screenshot of focused window and copy to clipboard"
-    , "Alt-Shift-s:           take screenshot of whole screen and save it to a file"
-    , "Alt-Shift-q:           exit xmonad"
-    , "Alt-Shift-c:           force quit window"
-    , "Alt-Shift-Delete:      lock screen"
-    , "Alt-Shift-h:           show this help window"
-    , "Alt-Shift-r:           restart xmonad and polybar"
-    , "Alt-Shift-Left:        move window to previous workspace and focus that workspace"
-    , "Alt-Shift-Right:       move window to next workspace and focus that workspace"
-    , "Alt-Shift-Tab:         reset layout to Tall (master and stack)"
-    , "Alt-Shift-LeftClick:   move window to dragged position"
-    , "Alt-Ctrl-c:            kill all windows in workspace"
-    , "Ctrl-Left:             focus previous workspace"
-    , "Ctrl-Right:            focus next workspace"
-    , "XF86AudioMute:         mute audio"
-    , "XF86AudioPlay:         toggle play/pause of current song in mpd"
-    , "XF86AudioPrev:         go to previous song of playlist in mpd"
-    , "XF86AudioNext:         go to next song of playlist in mpd"
-    , "XF86AudioRaiseVolume:  raise volume by 10%"
-    , "XF86AudioLowerVolume:  lower volume by 10%"
-    , "XF86MonBrightnessUp:   raise brightness by 10%"
-    , "XF86MonBrightnessDown: lower brightness by 10%"
+    , "Alt-Enter:              spawn alacritty"
+    , "Alt-b:                  spawn alacritty in a scratchpad"
+    , "Alt-`:                  toggle distraction less mode"
+    , "Alt-d:                  show run prompt"
+    , "Alt-q:                  quit window"
+    , "Alt-w:                  spawn emacs"
+    , "Alt-F2:                 spawn qutebrowser"
+    , "Alt-e:                  maximize window"
+    , "Alt-Tab:                cycle through layouts"
+    , "Alt-s:                  swap focused window with master window"
+    , "Alt-minus:              shrink window"
+    , "Alt-=:                  expand window"
+    , "Alt-[:                  shrink window mirrored"
+    , "Alt-]:                  expand window mirrored"
+    , "Alt-t:                  toggle floating of window"
+    , "Alt-,:                  increase number of master windows"
+    , "Alt-.:                  decrease number of master windows"
+    , "Alt-LeftClick:          float window and drag it with cursor"
+    , "Alt-RightClick:         float window and resize it"
+    , "Alt-[0-9]:              for [1-9] go to nth workspace, for 0 go to 10th workspace"
+    , "Alt-Print:              take screenshot of focused window and copy to clipboard"
+    , "Alt-Shift-s:            take screenshot of whole screen and save it to a file"
+    , "Alt-Shift-q:            exit xmonad"
+    , "Alt-Shift-c:            force quit window"
+    , "Alt-Shift-Delete:       lock screen"
+    , "Alt-Shift-h:            show this help window"
+    , "Alt-Shift-r:            restart xmonad and polybar"
+    , "Alt-Shift-Left:         move window to previous workspace and focus that workspace"
+    , "Alt-Shift-Right:        move window to next workspace and focus that workspace"
+    , "Alt-Shift-Tab:          reset layout to Tall (master and stack)"
+    , "Alt-Shift-LeftClick:    move window to dragged position"
+    , "Alt-Ctrl-c:             kill all windows in workspace"
+    , "Ctrl-Left:              focus previous workspace"
+    , "Ctrl-Right:             focus next workspace"
+    , "XF86AudioMute:          mute audio"
+    , "XF86AudioPlay:          toggle play/pause"
+    , "XF86AudioPrev:          go to previous"
+    , "XF86AudioNext:          go to next"
+    , "XF86AudioRaiseVolume:   raise volume by 10%"
+    , "XF86AudioLowerVolume:   lower volume by 10%"
+    , "XF86MonBrightnessUp:    raise brightness by 10%"
+    , "XF86MonBrightnessDown:  lower brightness by 10%"
     ]
 ''

@@ -59,6 +59,7 @@ rec {
       peek
       pfetch
       picard
+      playerctl
       qutebrowser
       ripcord
       sacad
@@ -186,7 +187,7 @@ rec {
     playerctld.enable = true;
     polybar = {
       enable = true;
-      script = "polybar main &";
+      script = "polybar -l=trace main &";
       config = (import ./config/polybar.nix { inherit pkgs theme; });
     };
   };
