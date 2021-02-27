@@ -112,7 +112,7 @@ rec {
     };
     ncmpcpp = {
       enable = true;
-      package = pkgs.master.ncmpcpp;
+      package = pkgs.ncmpcpp;
       settings = (import ./config/ncmpcpp.nix);
     };
     neovim = {
@@ -176,6 +176,7 @@ rec {
     };
     mpd = {
       enable = true;
+      package = pkgs.stable.mpd;
       musicDirectory = "${home.homeDirectory}/Media/Music";
       extraConfig = (import ./config/mpd.nix);
     };

@@ -4,6 +4,7 @@ with pkgs;
 with theme;
 
 ''
+  {-# LANGUAGE FlexibleContexts #-}
   -- fortuneteller2k's XMonad config
   -- This file is managed by NixOS, don't edit it directly!
 
@@ -29,9 +30,12 @@ with theme;
   import XMonad.Hooks.Place
   import XMonad.Hooks.WindowSwallowing
 
+  import XMonad.Layout.BoringWindows
+  import XMonad.Layout.Decoration
   import XMonad.Layout.DraggingVisualizer
   import XMonad.Layout.Grid
   import XMonad.Layout.LayoutHints
+  import XMonad.Layout.LayoutModifier
   import XMonad.Layout.Maximize
   import XMonad.Layout.NoBorders
   import XMonad.Layout.Renamed
@@ -39,7 +43,9 @@ with theme;
   import XMonad.Layout.ResizableTile
   import XMonad.Layout.Simplest
   import XMonad.Layout.Spacing
+  import XMonad.Layout.SubLayouts
   import XMonad.Layout.Tabbed
+  import XMonad.Layout.WindowNavigation
 
   import XMonad.Prompt
   import XMonad.Prompt.FuzzyMatch
@@ -55,6 +61,7 @@ with theme;
   import qualified Data.Map                 as M
   import qualified DBus                     as D
   import qualified DBus.Client              as D
+  import qualified XMonad.Actions.Sift      as W
   import qualified XMonad.StackSet          as W
 
   -- defaults
@@ -91,11 +98,19 @@ with theme;
     , ("M-S-h",                      safeSpawn "${gxmessage}/bin/gxmessage" ["-fn", fontNameGTK, help])
     , ("M-S-<Delete>",               safeSpawnProg "slock")
     , ("M-S-c",                      withFocused $ \w -> safeSpawn "${xorg.xkill}/bin/xkill" ["-id", show w])
+    , ("M-C-<Left>",                 sendMessage $ pullGroup L)
+    , ("M-C-<Right>",                sendMessage $ pullGroup R)
+    , ("M-C-<Up>",                   sendMessage $ pullGroup U)
+    , ("M-C-<Down>",                 sendMessage $ pullGroup D)
+    , ("M-C-m",                      withFocused (sendMessage . MergeAll))
+    , ("M-C-u",                      withFocused (sendMessage . UnMerge))
+    , ("M-C-,",                      onGroup W.focusUp')
+    , ("M-C-.",                      onGroup W.focusDown')
     , ("M-S-r",                      unsafeSpawn (restartcmd ++ "&& sleep 2 &&" ++ restackcmd))
     , ("M-S-<Left>",                 shiftToPrev >> prevWS)
     , ("M-S-<Right>",                shiftToNext >> nextWS)
-    , ("M-<Left>",                   windows W.focusUp)
-    , ("M-<Right>",                  windows W.focusDown)
+    , ("M-<Left>",                   focusUp)
+    , ("M-<Right>",                  focusDown)
     , ("M-S-<Tab>",                  sendMessage FirstLayout)
     , ("M-C-c",                      killAll)
     , ("<XF86AudioMute>",            safeSpawn "/etc/nixos/scripts/volume" ["toggle"])
@@ -156,29 +171,37 @@ with theme;
   layouts = avoidStruts 
             $ renamed [CutWordsLeft 5]
             $ smartBorders
-            $ addTabs shrinkText tabTheme
+            $ windowNavigation
+            $ tabs
+            $ boringWindows
             $ spacingRaw False (Border 4 4 4 4) True (Border 4 4 4 4) True
             $ draggingVisualizer
             $ maximizeWithPadding 0
             $ layoutHints
-            $ (tall ||| Mirror tall ||| threecol ||| tabs ||| Grid)
+            $ (tall ||| Mirror tall ||| threecol ||| Grid)
     where
-      tabs = renamed [Replace "Tabbed"] $ Simplest
       tall = ResizableTall 1 (3/100) (11/20) []
       threecol = ResizableThreeColMid 1 (3/100) (1/2) []
 
-  tabTheme = def
-    { fontName            = fontFamily
-    , activeColor         = "#${colors.primary}"
-    , inactiveColor       = "#${colors.bg}"
-    , urgentColor         = "#${colors.c5}"
-    , activeTextColor     = "#${colors.bg}"
-    , inactiveTextColor   = "#${colors.fg}"
-    , urgentTextColor     = "#${colors.bg}"
-    , activeBorderWidth   = 0
-    , inactiveBorderWidth = 0
-    , urgentBorderWidth   = 0
-    }
+  -- haskell had a stroke trying to infer the type of tabs, so this is the first time i'm specifying the type on something
+  tabs :: (Eq a, LayoutModifier (Sublayout Simplest) a, LayoutClass l a) =>
+      l a -> ModifiedLayout (Decoration TabbedDecoration DefaultShrinker)
+                            (ModifiedLayout (Sublayout Simplest) l) a
+
+  tabs x = addTabs shrinkText tabTheme $ subLayout [] Simplest x
+    where
+      tabTheme = def
+        { fontName            = fontFamily
+        , activeColor         = "#${colors.primary}"
+        , inactiveColor       = "#${colors.bg}"
+        , urgentColor         = "#${colors.c5}"
+        , activeTextColor     = "#${colors.bg}"
+        , inactiveTextColor   = "#${colors.fg}"
+        , urgentTextColor     = "#${colors.bg}"
+        , activeBorderWidth   = 0
+        , inactiveBorderWidth = 0
+        , urgentBorderWidth   = 0
+        }
 
   windowRules =
     placeHook (smart (0.5, 0.5))
@@ -195,7 +218,7 @@ with theme;
     , appName    =? "polybar"                              --> doLower
     , appName    =? "desktop_window"                       --> doIgnore
     , appName    =? "kdesktop"                             --> doIgnore
-    , isDialog                                             --> doF siftUp <+> doFloat ]
+    , isDialog                                             --> doF W.siftUp <+> doFloat ]
     <+> insertPosition End Newer -- same effect as attachaside patch in dwm
     <+> manageDocks
     <+> manageHook defaultConfig
@@ -261,6 +284,8 @@ with theme;
     , "Alt-t:                  toggle floating of window"
     , "Alt-,:                  increase number of master windows"
     , "Alt-.:                  decrease number of master windows"
+    , "Alt-Left:               focus previous window"
+    , "Alt-Right:              focus next window"
     , "Alt-LeftClick:          float window and drag it with cursor"
     , "Alt-RightClick:         float window and resize it"
     , "Alt-[0-9]:              for [1-9] go to nth workspace, for 0 go to 10th workspace"
@@ -276,6 +301,14 @@ with theme;
     , "Alt-Shift-Tab:          reset layout to Tall (master and stack)"
     , "Alt-Shift-LeftClick:    move window to dragged position"
     , "Alt-Ctrl-c:             kill all windows in workspace"
+    , "Alt-Ctrl-Left:          group focused window to it's left"
+    , "Alt-Ctrl-Right:         group focused window to it's right"
+    , "Alt-Ctrl-Up:            group focused window to it's up"
+    , "Alt-Ctrl-Down:          group focused window to it's down"
+    , "Alt-Ctrl-m:             group all windows in workspace"
+    , "Alt-Ctrl-u:             ungroup focused window" 
+    , "Alt-Ctrl-,:             focus previous window in group"
+    , "Alt-Ctrl-.:             focus next window in group"
     , "Ctrl-Left:              focus previous workspace"
     , "Ctrl-Right:             focus next workspace"
     , "XF86AudioMute:          mute audio"
