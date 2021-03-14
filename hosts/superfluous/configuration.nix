@@ -289,9 +289,21 @@ in
   };
   system = {
     userActivationScripts = {
-      reloadWallpaper.text = "${pkgs.xwallpaper}/bin/xwallpaper --zoom ${theme.wallpaper}";
+      reloadWallpaper.text = ''
+        if [ $DISPLAY ]; then
+          ${pkgs.xwallpaper}/bin/xwallpaper --zoom ${theme.wallpaper}
+        else
+          ${pkgs.coreutils}/bin/echo "skipping..."
+        fi
+      '';
       reloadXMonad = {
-        text = "${pkgs.xmonad-with-packages}/bin/xmonad --restart";
+        text = ''
+          if [ $DISPLAY ]; then
+            ${pkgs.xmonad-with-packages}/bin/xmonad --restart
+          else
+            ${pkgs.coreutils}/bin/echo "skipping..."
+          fi
+        '';
         deps = [ "reloadWallpaper" ];
       };
     };
