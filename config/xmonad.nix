@@ -216,7 +216,7 @@ with theme;
             $ draggingVisualizer
             $ maximizeWithPadding 0
             $ layoutHints
-            $ (tall ||| Mirror tall ||| threecol ||| Grid)
+            $ (tall ||| Mirror tall ||| threecol ||| Grid ||| Full)
     where
       tall = ResizableTall 1 (3/100) (11/20) []
       threecol = ResizableThreeColMid 1 (3/100) (1/2) []

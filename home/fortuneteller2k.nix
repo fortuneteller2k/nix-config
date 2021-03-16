@@ -18,9 +18,13 @@ rec {
     };
   };
   home = {
-    activation.reloadPolybar = "${pkgs.polybar}/bin/polybar-msg cmd restart";
+    activation.reloadPolybar =
+      if theme.wm == "awesome" then ""
+      else "${pkgs.polybar}/bin/polybar-msg cmd restart";
     file = {
       ".config/qt5ct/colors/Horizon.conf".source = ./config/Horizon.conf;
+      ".config/awesome/rc.lua".text = (import ./config/awesome/rc.nix);
+      ".config/awesome/theme.lua".text = (import ./config/awesome/theme.nix);
       ".icons/default".source = "${
         if theme.lightModeEnabled
         then "${pkgs.vanilla-dmz}/share/icons/Vanilla-DMZ"
@@ -132,6 +136,46 @@ rec {
       enable = true;
       settings = (import ./config/starship.nix);
     };
+    termite = with theme.colors; {
+      enable = true;
+      allowBold = true;
+      audibleBell = true;
+      backgroundColor = termiteBg;
+      clickableUrl = true;
+      colorsExtra = ''
+        color0 = #${c0}
+        color1 = #${c1}
+        color2 = #${c2}
+        color3 = #${c3}
+        color4 = #${c4}
+        color5 = #${c5}
+        color6 = #${c6}
+        color7 = #${c7}
+        color8 = #${c8}
+        color9 = #${c9}
+        color10 = #${c10}
+        color11 = #${c11}
+        color12 = #${c12}
+        color13 = #${c13}
+        color14 = #${c14}
+        color15 = #${c15}
+      '';
+      cursorBlink = "on";
+      cursorColor = "#${fg}";
+      cursorForegroundColor = "#${fg}";
+      cursorShape = "ibeam";
+      dynamicTitle = true;
+      filterUnmatchedUrls = true;
+      font = "Iosevka FT 11";
+      foregroundBoldColor = "#${fg}";
+      foregroundColor = "#${fg}";
+      fullscreen = true;
+      highlightColor = "#${activeBorderColor}";
+      hintsActiveBackgroundColor = "#${activeBorderColor}";
+      hintsBorderColor = "#${activeBorderColor}";
+      hintsActiveForegroundColor = "#${activeBorderColor}";
+      hintsPadding = 8;
+    };
     qutebrowser = {
       enable = true;
       extraConfig = (import ./config/qutebrowser.nix);
@@ -170,7 +214,7 @@ rec {
   };
   services = {
     dunst = {
-      enable = true;
+      enable = if theme.wm == "awesome" then false else true;
       iconTheme = {
         name = "Papirus";
         size = "32x32";
@@ -191,7 +235,7 @@ rec {
     };
     playerctld.enable = true;
     polybar = {
-      enable = true;
+      enable = if theme.wm == "awesome" then false else true;
       script = "polybar -l=trace main &";
       config = (import ./config/polybar.nix { inherit pkgs theme; });
     };

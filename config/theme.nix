@@ -14,4 +14,5 @@ rec {
     else if primaryColor == "red"
     then "${wallpaperPath}/horizon.jpg"
     else "${wallpaperPath}/horizonyellow.jpg";
+  wm = "xmonad";
 }

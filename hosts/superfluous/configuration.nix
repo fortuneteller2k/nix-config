@@ -255,37 +255,43 @@ in
           enable = true;
           theme = "abstractdark-sddm-theme";
         };
-        defaultSession = "none+xmonad";
+        defaultSession = "none+${theme.wm}";
       };
       useGlamor = true;
-      windowManager.xmonad = {
-        enable = true;
-        config = (import ../../config/xmonad.nix { inherit config pkgs theme; });
-        extraPackages = hpkgs: with hpkgs; [ dbus xmonad-contrib ];
-        ghcArgs = [
-          "-O2"
-          "-funfolding-use-threshold=16"
-          "-fexcess-precision"
-          "-optc-O3"
-          "-optc-ffast-math"
-        ];
-        haskellPackages =
-          let owner = "xmonad";
-          in
-          pkgs.haskellPackages.extend (pkgs.haskell.lib.packageSourceOverrides {
-            xmonad = pkgs.fetchFromGitHub {
-              inherit owner;
-              repo = owner;
-              rev = "a90558c07e3108ec2304cac40e5d66f74f52b803";
-              sha256 = "sha256-+TDKhCVvxoRLzHZGzFnClFqKcr4tUrwFY1at3Rwllus=";
-            };
-            xmonad-contrib = pkgs.fetchFromGitHub {
-              inherit owner;
-              repo = "${owner}-contrib";
-              rev = "8a0151fe77fecaa1e3b3566e6b05f7479687ecb8";
-              sha256 = "sha256-+p/oznVfM/ici9wvpmRp59+W+yZEPShpPkipjOhiguU=";
-            };
-          });
+      windowManager = {
+        awesome = {
+          enable = if theme.wm == "awesome" then true else false;
+          luaModules = with pkgs.luaPackages; [ luarocks ];
+        };
+        xmonad = {
+          enable = if theme.wm == "xmonad" then true else false;
+          config = (import ../../config/xmonad.nix { inherit config pkgs theme; });
+          extraPackages = hpkgs: with hpkgs; [ dbus xmonad-contrib ];
+          ghcArgs = [
+            "-O2"
+            "-funfolding-use-threshold=16"
+            "-fexcess-precision"
+            "-optc-O3"
+            "-optc-ffast-math"
+          ];
+          haskellPackages =
+            let owner = "xmonad";
+            in
+            pkgs.haskellPackages.extend (pkgs.haskell.lib.packageSourceOverrides {
+              xmonad = pkgs.fetchFromGitHub {
+                inherit owner;
+                repo = owner;
+                rev = "a90558c07e3108ec2304cac40e5d66f74f52b803";
+                sha256 = "sha256-+TDKhCVvxoRLzHZGzFnClFqKcr4tUrwFY1at3Rwllus=";
+              };
+              xmonad-contrib = pkgs.fetchFromGitHub {
+                inherit owner;
+                repo = "${owner}-contrib";
+                rev = "8a0151fe77fecaa1e3b3566e6b05f7479687ecb8";
+                sha256 = "sha256-+p/oznVfM/ici9wvpmRp59+W+yZEPShpPkipjOhiguU=";
+              };
+            });
+        };
       };
       layout = "us";
       libinput = {
@@ -304,16 +310,13 @@ in
           ${pkgs.coreutils}/bin/echo "skipping..."
         fi
       '';
-      reloadXMonad = {
-        text = ''
-          if [ $DISPLAY ]; then
-            ${pkgs.xmonad-with-packages}/bin/xmonad --restart
-          else
-            ${pkgs.coreutils}/bin/echo "skipping..."
-          fi
-        '';
-        deps = [ "reloadWallpaper" ];
-      };
+      reloadXMonad.text = if theme.wm != "xmonad" then "echo 'skipping...'" else ''
+        if [ $DISPLAY ]; then
+          ${pkgs.xmonad-with-packages}/bin/xmonad --restart
+        else
+          ${pkgs.coreutils}/bin/echo "skipping..."
+        fi
+      '';
     };
     stateVersion = "21.05";
   };
